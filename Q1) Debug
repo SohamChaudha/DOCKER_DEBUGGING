@@ -1,0 +1,49 @@
+FROM nginx:alpine
+USER appuser
+RUN useradd -m appuser
+WORKDIR /app
+COPY . .
+HEALTHCHECK --interval=30s --timeout=3s \
+CMD curl -f http://localhost/ || exit 1
+EXPOSE 8080
+
+This was the dockerfile which we had to debug.
+In this on line 2 USER has been declared as appuser, but appuser cannot be found as it has not been added so one simple fix is RUN useradd -D appuser should be on line 2 and USER appuser must be on line 3.
+Instead of -m we shoule use -D so user is created in default settings.
+
+Corrected dockerfile
+
+FROM nginx:alpine
+RUN adduser -D appuser
+USER appuser
+WORKDIR /app
+COPY . .
+HEALTHCHECK --interval=30s --timeout=3s \
+CMD curl -f http://localhost/ || exit 1
+EXPOSE 8080
+
+Output :
+
+soham28@soham28-Nitro-AN515-58:~/docker$ docker build -t myapp .
+[+] Building 3.3s (9/9) FINISHED                                                                                                                                                                                       docker:default
+ => [internal] load build definition from Dockerfile                                                                                                                                                                             0.0s
+ => => transferring dockerfile: 209B                                                                                                                                                                                             0.0s
+ => [internal] load metadata for docker.io/library/nginx:alpine                                                                                                                                                                  2.5s
+ => [internal] load .dockerignore                                                                                                                                                                                                0.0s
+ => => transferring context: 118B                                                                                                                                                                                                0.0s
+ => CACHED [1/4] FROM docker.io/library/nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2                                                                                                     0.0s
+ => => resolve docker.io/library/nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2                                                                                                            0.0s
+ => [internal] load build context                                                                                                                                                                                                0.0s
+ => => transferring context: 389B                                                                                                                                                                                                0.0s
+ => [2/4] RUN adduser -D appuser                                                                                                                                                                                                 0.1s
+ => [3/4] WORKDIR /app                                                                                                                                                                                                           0.1s
+ => [4/4] COPY . .                                                                                                                                                                                                               0.1s
+ => exporting to image                                                                                                                                                                                                           0.3s
+ => => exporting layers                                                                                                                                                                                                          0.2s
+ => => exporting manifest sha256:5d77ee394fc681bdb979f7b92ed921abab20f94f6b891f3fca3b9819ee814606                                                                                                                                0.0s
+ => => exporting config sha256:f22e9f04a146cd55ba97dec4cc10743948afe3d28c00d07286b75cb4507c2cfb                                                                                                                                  0.0s
+ => => exporting attestation manifest sha256:373ae88ca37a1e6e85b99617ede7092781afe3f60eb8d9e4e99393765df7f81a                                                                                                                    0.0s
+ => => exporting manifest list sha256:dc4556d7b6fa04b4fcdd357d7bddb706961d6dfa0568be1d5b37e4a8f3312926                                                                                                                           0.0s
+ => => naming to docker.io/library/myapp:latest                                                                                                                                                                                  0.0s
+ => => unpacking to docker.io/library/myapp:latest                                                                                                                                                                               0.1s
+
