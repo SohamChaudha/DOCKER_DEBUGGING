@@ -1,0 +1,89 @@
+services:
+  app:
+    image: myapp:1.0
+    ports:
+      - 8080:3000
+    environment:
+      - APP_ENV=production
+    depends_on:
+      - database
+
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+This is the code that contains errors 
+1) depends_on:
+    - database
+it should be 
+   depends_on:
+    - db
+
+2) ports:
+    - 8080:3000 
+this should be in double quotes
+ports:
+    - "8080:3000"
+
+3) volume named dbdata has been created but it is not defined so it should be defined at the end like
+volumes:
+ dbdata:
+
+Corrected Version of compose.yaml
+
+services:
+ app:
+  image: myapp:latest
+  ports:
+   - "8080:3000"
+  environment:
+   - APP_ENV=production
+  depends_on:
+   - db
+ db:
+  image: postgres
+  environment:
+   - POSTGRES_PASSWORD=secret
+  volumes:
+   - dbdata:/var/lib/postgresql/data
+
+volumes:
+ dbdata:
+
+Output of current Code
+
+soham28@soham28-Nitro-AN515-58:~/docker$ nano compose.yaml
+soham28@soham28-Nitro-AN515-58:~/docker$ docker compose up
+[+] up 19/19
+ ✔ Image postgres         Pulled                                                                                                                                                                                                 96.1s
+ ✔ Volume docker_dbdata   Created                                                                                                                                                                                                 0.0s
+ ✔ Network docker_default Created                                                                                                                                                                                                 0.0s
+ ✔ Container docker-db-1  Created                                                                                                                                                                                                 0.2s
+ ✔ Container docker-app-1 Created                                                                                                                                                                                                 0.0s
+Attaching to app-1, db-1
+db-1  | Error: in 18+, these Docker images are configured to store database data in a
+db-1  |        format which is compatible with "pg_ctlcluster" (specifically, using
+db-1  |        major-version-specific directory names).  This better reflects how
+db-1  |        PostgreSQL itself works, and how upgrades are to be performed.
+db-1  | 
+db-1  |        See also https://github.com/docker-library/postgres/pull/1259
+db-1  | 
+db-1  |        Counter to that, there appears to be PostgreSQL data in:
+db-1  |          /var/lib/postgresql/data (unused mount/volume)
+db-1  | 
+db-1  |        This is usually the result of upgrading the Docker image without
+db-1  |        upgrading the underlying database using "pg_upgrade" (which requires both
+db-1  |        versions).
+db-1  | 
+db-1  |        The suggested container configuration for 18+ is to place a single mount
+db-1  |        at /var/lib/postgresql which will then place PostgreSQL data in a
+db-1  |        subdirectory, allowing usage of "pg_upgrade --link" without mount point
+db-1  |        boundary issues.
+db-1  | 
+db-1  |        See https://github.com/docker-library/postgres/issues/37 for a (long)
+db-1  |        discussion around this process, and suggestions for how to do so.
+db-1 exited with code 1
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint docker-app-1 (abfb502db1970e0aa891c31b5e9835eefa04f100f950ab43c2573604f6311c7a): failed to bind host port 0.0.0.0:8080/tcp: address already in use
