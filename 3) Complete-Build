@@ -1,0 +1,85 @@
+1) Dockerfile :
+FROM nginx:alpine
+RUN adduser -D appuser
+USER appuser
+WORKDIR /app
+COPY . .
+HEALTHCHECK --interval=30s --timeout=3s \
+CMD curl -f http://localhost/ || exit 1
+EXPOSE 8080
+
+2) Compose.yaml file :
+services:
+ app:
+  image: myapp:latest
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:3000"]
+    interval: 30s
+    timeout: 3s
+    retries: 3
+  ports:
+   - "8080:3000"
+  deploy:
+    resources:
+      limits:
+        memory: 256M
+  environment:
+   - APP_ENV=production
+  depends_on:
+   - db
+  env_file: 
+    - .env
+ db:
+  image: postgres
+  environment:
+   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  volumes:
+   - dbdata:/var/lib/postgresql/data
+
+volumes:
+ dbdata:
+
+3) .env file :
+POSTGRES_PASSWORD=secret
+
+Output of docker compose ps :
+
+soham28@soham28-Nitro-AN515-58:~/docker$ docker compose up
+[+] up 1/1
+ ✔ Container docker-app-1 Recreated                                                                                                                                                                                               0.1s
+Attaching to app-1, db-1
+db-1  | Error: in 18+, these Docker images are configured to store database data in a
+db-1  |        format which is compatible with "pg_ctlcluster" (specifically, using
+db-1  |        major-version-specific directory names).  This better reflects how
+db-1  |        PostgreSQL itself works, and how upgrades are to be performed.
+db-1  | 
+db-1  |        See also https://github.com/docker-library/postgres/pull/1259
+db-1  | 
+db-1  |        Counter to that, there appears to be PostgreSQL data in:
+db-1  |          /var/lib/postgresql/data (unused mount/volume)
+db-1  | 
+db-1  |        This is usually the result of upgrading the Docker image without
+db-1  |        upgrading the underlying database using "pg_upgrade" (which requires both
+db-1  |        versions).
+db-1  | 
+db-1  |        The suggested container configuration for 18+ is to place a single mount
+db-1  |        at /var/lib/postgresql which will then place PostgreSQL data in a
+db-1  |        subdirectory, allowing usage of "pg_upgrade --link" without mount point
+db-1  |        boundary issues.
+db-1  | 
+db-1  |        See https://github.com/docker-library/postgres/issues/37 for a (long)
+db-1  |        discussion around this process, and suggestions for how to do so.
+db-1 exited with code 1
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint docker-app-1 (3ca27f2cb554a54c6387771d998abdeff098b6c6f9dd388d00abdd869b949168): failed to bind host port 0.0.0.0:8080/tcp: address already in use
+soham28@soham28-Nitro-AN515-58:~/docker$ docker compose ps
+NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+soham28@soham28-Nitro-AN515-58:~/docker$ docker compose up -d
+[+] up 2/2
+ ✔ Container docker-db-1  Started                                                                                                                                                                                                 0.2s
+ ✔ Container docker-app-1 Started                                                                                                                                                                                                 0.2s
+soham28@soham28-Nitro-AN515-58:~/docker$ docker compose ps
+NAME           IMAGE          COMMAND                  SERVICE   CREATED          STATUS                                  PORTS
+docker-app-1   myapp:latest   "/docker-entrypoint.…"   app       54 seconds ago   Restarting (1) Less than a second ago   
+soham28@soham28-Nitro-AN515-58:~/docker$ 
+
